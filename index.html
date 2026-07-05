@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#17130f">
+  <title>PuRe Playtest — Character Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <header class="site-header">
+    <a class="brand" href="#">
+      <span class="brand-mark">PR</span>
+      <span><strong>PuRe Playtest</strong><small>Character Atelier</small></span>
+    </a>
+    <div class="header-actions">
+      <span class="save-status" id="saveStatus">Saved locally</span>
+      <button class="button ghost" id="resetButton">New character</button>
+      <button class="button primary" id="exportButton">Export PDF</button>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <aside class="progress-panel">
+      <p class="eyebrow">Your journey</p>
+      <nav id="stepNav" aria-label="Character creation steps"></nav>
+      <div class="progress-card">
+        <span>Character complete</span>
+        <strong id="progressPercent">0%</strong>
+        <div class="progress-track"><i id="progressBar"></i></div>
+        <small id="progressHint">Start with a name.</small>
+      </div>
+    </aside>
+
+    <section class="builder">
+      <div class="step-content" id="stepContent"></div>
+      <div class="step-controls">
+        <button class="button ghost" id="backButton">Back</button>
+        <span id="stepCounter">Step 1 of 6</span>
+        <button class="button primary" id="nextButton">Continue</button>
+      </div>
+    </section>
+
+    <aside class="character-preview" id="characterPreview"></aside>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <template id="counterTemplate">
+    <div class="stat-counter">
+      <button type="button" data-action="decrease" aria-label="Decrease">−</button>
+      <strong></strong>
+      <button type="button" data-action="increase" aria-label="Increase">+</button>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
