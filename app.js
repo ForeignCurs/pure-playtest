@@ -54,8 +54,7 @@ const GAME = {
     { id: "evade", name: "Evade", available: true },
     { id: "willpower", name: "Willpower", available: true },
     { id: "melee", name: "Melee", available: true },
-    { id: "ranged", name: "Ranged", available: true },
-    { id: "combat-magic", name: "Combat Magic", available: false, future: true }
+    { id: "ranged", name: "Ranged", available: true }
   ],
   professionalSkills: [
     { id: "alchemy", name: "Alchemy" }, { id: "animal-training", name: "Animal Training" },
@@ -70,7 +69,7 @@ const GAME = {
     { id: "oratory", name: "Oratory" }, { id: "performance", name: "Performance" },
     { id: "religion", name: "Religion" }, { id: "scholarship", name: "Scholarship" },
     { id: "scouting", name: "Scouting" }, { id: "tradecraft", name: "Tradecraft" },
-    { id: "warfare", name: "Warfare" }
+    { id: "warfare", name: "Warfare" }, { id: "combat-magic", name: "Combat Magic" }
   ],
   professionalUnlocks: {
     "born-peasant": ["farming", "animal-training"], "born-villager": ["craft", "healing"],
@@ -577,11 +576,8 @@ function skillName(id) {
 }
 
 function renderCombatSkillGroup(stage) {
-  const future = GAME.combatSkills.filter(skill => !skill.available);
   return `<section class="skill-section combat-skill-section"><div class="path-heading"><span>Combat skills</span><small>Quick reference</small></div>
-    <div class="skill-grid">${activeCombatSkills().map(skill => renderSkillRow(skill, stage)).join("")}
-      ${future.map(skill => `<div class="skill-row future-skill"><div><strong>${skill.name}</strong><small>Reserved for future magical lifepaths</small></div><span>Locked</span></div>`).join("")}
-    </div>
+    <div class="skill-grid">${activeCombatSkills().map(skill => renderSkillRow(skill, stage)).join("")}</div>
   </section>`;
 }
 
@@ -667,7 +663,6 @@ function renderReviewSkillGroup(title, skills) {
     <h4>${title}</h4>
     <div class="review-skill-list">${skills.length
       ? skills.map(skill => {
-          if (skill.available === false) return `<span class="locked-skill"><i>${skill.name}</i><strong>Locked</strong></span>`;
           const value = skillValue(skill.id);
           return `<span class="${value > 20 ? "trained" : ""}"><i>${skill.name}</i><strong>${value}</strong></span>`;
         }).join("")
