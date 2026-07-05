@@ -9,8 +9,8 @@ const GAME = {
     { id: "orc", name: "Orc", available: false, description: "Fierce survivors whose strength is forged through hardship.", benefit: "Coming later" }
   ],
   skillPointsPerLifepath: 300,
-  freePointsPerLifepath: 40,
-  presetBoostPattern: [11, 11, 9, 9, 7, 7, 5, 5, 3, 3],
+  skillPointCapPerStage: 40,
+  presetBoostPattern: [7, 7, 6, 6, 5, 5, 4, 4, 3, 3],
   skillProfiles: {
     rural: ["athletics", "brawn", "endurance", "first-aid", "local-knowledge", "ride", "survival", "willpower"],
     urban: ["deceive", "drive", "influence", "insight", "intimidate", "local-knowledge", "perception", "sleight"],
@@ -155,13 +155,14 @@ const STEPS = [
 
 const freshCharacter = () => ({
   name: "", sex: "", concept: "", appearance: "", ancestry: "", lifepaths: [],
-  skillAdvances: Object.fromEntries([...GAME.standardSkills, ...GAME.professionalSkills].map(skill => [skill.id, 0])),
+  stageAllocations: [],
   features: [], notes: ""
 });
 
 let character = loadCharacter();
 let currentStep = 0;
 let activeLifepathSlot = Math.min(character.lifepaths.length, 3);
+let activeSkillStage = 0;
 let showLifepathGuide = false;
 
 const el = id => document.getElementById(id);
@@ -183,7 +184,7 @@ function loadCharacter() {
     }
     return {
       ...freshCharacter(), ...saved, lifepaths: migratedPaths,
-      skillAdvances: { ...freshCharacter().skillAdvances, ...(saved.skillAdvances || {}) }
+      stageAllocations: Array.isArray(saved.stageAllocations) ? saved.stageAllocations.slice(0, migratedPaths.length) : []
     };
   } catch { return freshCharacter(); }
 }
@@ -224,54 +225,88 @@ function lifepathSkillPackage(lifepathId) {
   }));
 }
 
-function presetTraining() {
-  const ratings = Object.fromEntries([...GAME.standardSkills, ...GAME.professionalSkills].map(skill => [skill.id, 20]));
-  const boosts = Object.fromEntries([...GAME.standardSkills, ...GAME.professionalSkills].map(skill => [skill.id, 0]));
-  const paths = character.lifepaths.map((id, index) => {
+function availableSkillsAtStage(stageIndex) {
+  const unlocked = new Set(character.lifepaths.slice(0, stageIndex + 1).flatMap(id => GAME.professionalUnlocks[id] || []));
+  return [...GAME.standardSkills, ...GAME.professionalSkills.filter(skill => unlocked.has(skill.id))];
+}
+
+function trainingState() {
+  const allSkills = [...GAME.standardSkills, ...GAME.professionalSkills];
+  const ratings = Object.fromEntries(allSkills.map(skill => [skill.id, 20]));
+  const totalPresetBoosts = Object.fromEntries(allSkills.map(skill => [skill.id, 0]));
+  const stages = character.lifepaths.map((id, index) => {
+    const startRatings = { ...ratings };
     const entries = lifepathSkillPackage(id);
-    let cost = 0;
+    const presetCosts = {};
     entries.forEach(entry => {
       const start = ratings[entry.skillId];
-      cost += costToRaiseSkill(start + entry.boost, start);
+      presetCosts[entry.skillId] = costToRaiseSkill(start + entry.boost, start);
       ratings[entry.skillId] += entry.boost;
-      boosts[entry.skillId] += entry.boost;
+      totalPresetBoosts[entry.skillId] += entry.boost;
     });
-    return { id, index, entries, cost, freePoints: Math.min(GAME.freePointsPerLifepath, Math.max(0, GAME.skillPointsPerLifepath - cost)) };
+    const afterPresetRatings = { ...ratings };
+    const allowedIds = new Set(availableSkillsAtStage(index).map(skill => skill.id));
+    const allocations = character.stageAllocations[index] || {};
+    const freeCosts = {};
+    Object.entries(allocations).forEach(([skillId, amount]) => {
+      const advance = allowedIds.has(skillId) ? Math.max(0, Math.floor(Number(amount) || 0)) : 0;
+      if (!advance) return;
+      freeCosts[skillId] = costToRaiseSkill(ratings[skillId] + advance, ratings[skillId]);
+      ratings[skillId] += advance;
+    });
+    const skillCosts = {};
+    [...new Set([...Object.keys(presetCosts), ...Object.keys(freeCosts)])].forEach(skillId => {
+      skillCosts[skillId] = (presetCosts[skillId] || 0) + (freeCosts[skillId] || 0);
+    });
+    const presetCost = Object.values(presetCosts).reduce((sum, cost) => sum + cost, 0);
+    const freeCost = Object.values(freeCosts).reduce((sum, cost) => sum + cost, 0);
+    const totalSpent = presetCost + freeCost;
+    return {
+      id, index, entries, startRatings, afterPresetRatings, endRatings: { ...ratings },
+      presetCosts, freeCosts, skillCosts, presetCost, freeCost, totalSpent,
+      remaining: GAME.skillPointsPerLifepath - totalSpent,
+      valid: totalSpent <= GAME.skillPointsPerLifepath && Object.values(skillCosts).every(cost => cost <= GAME.skillPointCapPerStage)
+    };
   });
-  return { ratings, boosts, paths };
+  return { ratings, totalPresetBoosts, stages };
 }
 
 function skillValue(skillId) {
-  return presetTraining().ratings[skillId] + (character.skillAdvances[skillId] || 0);
+  return trainingState().ratings[skillId];
 }
 
 function spentSkillPoints() {
-  const training = presetTraining();
-  return availableSkills().reduce((sum, skill) => {
-    const start = training.ratings[skill.id];
-    return sum + costToRaiseSkill(start + (character.skillAdvances[skill.id] || 0), start);
-  }, 0);
+  return trainingState().stages.reduce((sum, stage) => sum + stage.totalSpent, 0);
 }
 
 function skillPointBudget() {
-  return presetTraining().paths.reduce((sum, path) => sum + path.freePoints, 0);
+  return character.lifepaths.length * GAME.skillPointsPerLifepath;
 }
 
 function remainingSkillPoints() {
   return skillPointBudget() - spentSkillPoints();
 }
 
+function stageAllocationComplete(stage) {
+  if (!stage?.valid || stage.remaining < 0) return false;
+  if (stage.remaining === 0) return true;
+  return availableSkillsAtStage(stage.index).every(skill => {
+    const value = stage.endRatings[skill.id];
+    const nextCost = Math.max(1, Math.floor(value / 10));
+    return value >= 99 || nextCost > stage.remaining || (stage.skillCosts[skill.id] || 0) + nextCost > GAME.skillPointCapPerStage;
+  });
+}
+
 function skillAllocationComplete() {
-  const remaining = remainingSkillPoints();
-  if (remaining < 0) return false;
-  if (remaining === 0) return true;
-  return availableSkills().every(skill => skillValue(skill.id) >= 99 || Math.floor(skillValue(skill.id) / 10) > remaining);
+  const stages = trainingState().stages;
+  return stages.length === 4 && stages.every(stageAllocationComplete);
 }
 
 function normalizeLockedSkills() {
-  const unlocked = unlockedProfessionalSkillIds();
-  GAME.professionalSkills.forEach(skill => {
-    if (!unlocked.includes(skill.id)) character.skillAdvances[skill.id] = 0;
+  character.stageAllocations = character.stageAllocations.slice(0, character.lifepaths.length);
+  character.stageAllocations = character.stageAllocations.map((allocations = {}, index) => {
+    const allowed = new Set(availableSkillsAtStage(index).map(skill => skill.id));
+    return Object.fromEntries(Object.entries(allocations).filter(([id]) => allowed.has(id)));
   });
 }
 
@@ -483,30 +518,42 @@ function renderLifepathGuide() {
 }
 
 function renderSkills() {
-  const remaining = remainingSkillPoints();
-  const unlocked = unlockedProfessionalSkillIds();
-  const professional = GAME.professionalSkills.filter(skill => unlocked.includes(skill.id));
-  return heading("Training & experience", "Shape your remaining training.", `Each lifepath automatically improves ten fitting skills: two each by +3, +5, +7, +9, and +11. Those advances use the normal scaled cost. Up to ${GAME.freePointsPerLifepath} remaining cost-points per path enter your free pool.`) + `
-    <div class="budget-strip ${remaining < 0 ? "over" : ""}">
-      <span>Free training · max ${GAME.freePointsPerLifepath} per lifepath</span>
-      <strong>${remaining} / ${skillPointBudget()} remaining</strong>
+  if (!character.lifepaths.length) {
+    return heading("Lifepaths required", "Choose your history first.", "Each lifepath creates its own 300-point training stage.");
+  }
+  const state = trainingState();
+  const firstIncomplete = state.stages.findIndex(stage => !stageAllocationComplete(stage));
+  const furthestAccessible = firstIncomplete < 0 ? state.stages.length - 1 : firstIncomplete;
+  activeSkillStage = Math.min(activeSkillStage, furthestAccessible);
+  const stage = state.stages[activeSkillStage];
+  const stageSkills = availableSkillsAtStage(activeSkillStage);
+  const professional = stageSkills.filter(skill => GAME.professionalSkills.some(item => item.id === skill.id));
+  const lifepath = getLifepath(stage.id, stage.index);
+  return heading("Training & experience", "Spend each stage in sequence.", `Every lifepath has 300 points. Its ten preset increases are charged first; you may then train any available skill, but no single skill may consume more than ${GAME.skillPointCapPerStage} cost-points during that stage.`) + `
+    <div class="skill-stage-tabs">${state.stages.map(item => {
+      const path = getLifepath(item.id, item.index);
+      const locked = item.index > furthestAccessible;
+      return `<button class="${item.index === activeSkillStage ? "active" : ""} ${stageAllocationComplete(item) ? "complete" : ""}" data-skill-stage="${item.index}" ${locked ? "disabled" : ""}>
+        <span>${item.index === 0 ? "Born" : `Stage ${item.index + 1}`}</span><strong>${path?.name || item.id}</strong><small>${item.remaining} left</small>
+      </button>`;
+    }).join("")}</div>
+    <div class="budget-strip ${!stage.valid ? "over" : ""}">
+      <span>${lifepath?.name || "Stage"} · Preset ${stage.presetCost} + Invested ${stage.freeCost}</span>
+      <strong>${stage.remaining} / ${GAME.skillPointsPerLifepath} remaining</strong>
     </div>
-    ${renderPresetTraining()}
-    ${renderSkillGroup("Standard skills", GAME.standardSkills)}
-    ${renderSkillGroup(`Professional skills · ${professional.length} unlocked`, professional, professional.length ? "" : "Choose lifepaths to unlock professional skills.")}`;
+    ${renderPresetTraining(stage)}
+    ${renderSkillGroup("Standard skills", GAME.standardSkills, stage)}
+    ${renderSkillGroup(`Professional skills · ${professional.length} available`, professional, stage, professional.length ? "" : "This stage has no professional skills unlocked.")}`;
 }
 
-function renderPresetTraining() {
-  const training = presetTraining();
+function renderPresetTraining(stage) {
+  const lifepath = getLifepath(stage.id, stage.index);
   return `<section class="preset-training">
-    <div class="path-heading"><span>Training supplied by your lifepaths</span><small>Applied automatically</small></div>
-    <div class="preset-path-grid">${training.paths.map(path => {
-      const lifepath = getLifepath(path.id, path.index);
-      return `<article class="preset-path">
-        <div><h3>${lifepath?.name || path.id}</h3><small>${path.cost} scaled points · ${path.freePoints} free</small></div>
-        <p>${path.entries.map(entry => `${skillName(entry.skillId)} <strong>+${entry.boost}</strong>`).join(" · ")}</p>
-      </article>`;
-    }).join("") || `<p class="skill-empty">Choose lifepaths to receive preset training.</p>`}</div>
+    <div class="path-heading"><span>${lifepath?.name || "Lifepath"} preset training</span><small>${stage.presetCost} points applied automatically</small></div>
+    <div class="preset-path-grid"><article class="preset-path">
+      <div><h3>Stage ${stage.index + 1}</h3><small>Values enter from the previous stage</small></div>
+      <p>${stage.entries.map(entry => `${skillName(entry.skillId)} <strong>+${entry.boost}</strong> (${stage.presetCosts[entry.skillId]} pts)`).join(" · ")}</p>
+    </article></div>
   </section>`;
 }
 
@@ -514,25 +561,27 @@ function skillName(id) {
   return findById([...GAME.standardSkills, ...GAME.professionalSkills], id)?.name || id;
 }
 
-function renderSkillGroup(title, skills, emptyMessage = "") {
+function renderSkillGroup(title, skills, stage, emptyMessage = "") {
   return `<section class="skill-section"><div class="path-heading"><span>${title}</span></div>
-    ${skills.length ? `<div class="skill-grid">${skills.map(skill => renderSkillRow(skill)).join("")}</div>` : `<p class="skill-empty">${emptyMessage}</p>`}
+    ${skills.length ? `<div class="skill-grid">${skills.map(skill => renderSkillRow(skill, stage)).join("")}</div>` : `<p class="skill-empty">${emptyMessage}</p>`}
   </section>`;
 }
 
-function renderSkillRow(skill) {
-  const value = skillValue(skill.id);
-  const freeAdvance = character.skillAdvances[skill.id] || 0;
-  const presetAdvance = presetTraining().boosts[skill.id] || 0;
+function renderSkillRow(skill, stage) {
+  const value = stage.endRatings[skill.id];
+  const freeAdvance = character.stageAllocations[stage.index]?.[skill.id] || 0;
+  const presetAdvance = stage.entries.find(entry => entry.skillId === skill.id)?.boost || 0;
+  const stageCost = stage.skillCosts[skill.id] || 0;
   const nextCost = Math.max(1, Math.floor(value / 10));
+  const canIncrease = value < 99 && nextCost <= stage.remaining && stageCost + nextCost <= GAME.skillPointCapPerStage;
   return `<div class="skill-row">
-    <div><strong>${skill.name}</strong><small>Preset +${presetAdvance} · Free +${freeAdvance} · Next costs ${nextCost}</small></div>
+    <div><strong>${skill.name}</strong><small>${stage.startRatings[skill.id]} → ${value} · Preset +${presetAdvance} · Invested +${freeAdvance} · ${stageCost}/${GAME.skillPointCapPerStage} pts</small></div>
     <div class="skill-controls" data-skill="${skill.id}">
       <button data-skill-delta="-5" ${freeAdvance <= 0 ? "disabled" : ""}>−5</button>
       <button data-skill-delta="-1" ${freeAdvance <= 0 ? "disabled" : ""}>−</button>
       <b>${value}</b>
-      <button data-skill-delta="1" ${nextCost > remainingSkillPoints() || value >= 99 ? "disabled" : ""}>+</button>
-      <button data-skill-delta="5" ${nextCost > remainingSkillPoints() || value >= 99 ? "disabled" : ""}>+5</button>
+      <button data-skill-delta="1" ${!canIncrease ? "disabled" : ""}>+</button>
+      <button data-skill-delta="5" ${!canIncrease ? "disabled" : ""}>+5</button>
     </div>
   </div>`;
 }
@@ -576,8 +625,12 @@ function renderReview() {
       <section class="review-skills">
         <div class="review-skills-heading">
           <div><span class="preview-label">Complete skill profile</span><h3>Skills</h3></div>
-          <p><strong>${spentSkillPoints()}</strong> / ${skillPointBudget()} free points spent</p>
+          <p><strong>${spentSkillPoints()}</strong> / ${skillPointBudget()} training points spent</p>
         </div>
+        <div class="review-stage-costs">${trainingState().stages.map(stage => {
+          const path = getLifepath(stage.id, stage.index);
+          return `<span><strong>${path?.name || stage.id}</strong> ${stage.presetCost} preset + ${stage.freeCost} invested · ${stage.remaining} left</span>`;
+        }).join("")}</div>
         ${renderReviewSkillGroup("Standard skills", GAME.standardSkills)}
         ${renderReviewSkillGroup("Professional skills", unlockedProfessional)}
       </section>
@@ -621,26 +674,34 @@ function bindStepEvents() {
     character.lifepaths = character.lifepaths.slice(0, activeLifepathSlot);
     character.lifepaths[activeLifepathSlot] = button.dataset.lifepathChoice;
     normalizeLockedSkills();
+    activeSkillStage = Math.min(activeSkillStage, character.lifepaths.length - 1);
     if (activeLifepathSlot < 3) activeLifepathSlot++;
     saveCharacter(); render();
+  }));
+  document.querySelectorAll("[data-skill-stage]").forEach(button => button.addEventListener("click", () => {
+    if (!button.disabled) { activeSkillStage = Number(button.dataset.skillStage); render(); }
   }));
   document.querySelectorAll("[data-skill]").forEach(counter => counter.querySelectorAll("button").forEach(button => button.addEventListener("click", () => {
     const id = counter.dataset.skill;
     const delta = Number(button.dataset.skillDelta);
-    let freeAdvance = character.skillAdvances[id] || 0;
+    character.stageAllocations[activeSkillStage] ||= {};
+    let freeAdvance = character.stageAllocations[activeSkillStage][id] || 0;
     if (delta < 0) freeAdvance = Math.max(0, freeAdvance + delta);
     else {
-      let remaining = remainingSkillPoints();
-      let value = skillValue(id);
+      const stage = trainingState().stages[activeSkillStage];
+      let remaining = stage.remaining;
+      let stageCost = stage.skillCosts[id] || 0;
+      let value = stage.endRatings[id];
       for (let i = 0; i < delta && value < 99; i++) {
         const cost = Math.max(1, Math.floor(value / 10));
-        if (cost > remaining) break;
+        if (cost > remaining || stageCost + cost > GAME.skillPointCapPerStage) break;
         freeAdvance++;
         value++;
         remaining -= cost;
+        stageCost += cost;
       }
     }
-    character.skillAdvances[id] = freeAdvance; saveCharacter(); render();
+    character.stageAllocations[activeSkillStage][id] = freeAdvance; saveCharacter(); render();
   })));
   document.querySelectorAll("[data-feature]").forEach(button => button.addEventListener("click", () => {
     const id = button.dataset.feature;
@@ -686,7 +747,7 @@ el("exportButton").addEventListener("click", () => {
 });
 el("resetButton").addEventListener("click", () => {
   if (confirm("Start a new character? Your current draft will be cleared.")) {
-    character = freshCharacter(); currentStep = 0; activeLifepathSlot = 0; saveCharacter(); render(); showToast("A fresh page awaits.");
+    character = freshCharacter(); currentStep = 0; activeLifepathSlot = 0; activeSkillStage = 0; saveCharacter(); render(); showToast("A fresh page awaits.");
   }
 });
 
