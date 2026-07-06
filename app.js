@@ -161,7 +161,7 @@ const STEPS = [
 const freshCharacter = () => ({
   name: "", sex: "", concept: "", appearance: "", ancestry: "", lifepaths: [],
   stageAllocations: [], skillModes: [], skillPriorityOrders: [],
-  features: [], notes: ""
+  features: [], notes: "", noise: []
 });
 
 let character = loadCharacter();
@@ -282,6 +282,12 @@ function trainingState() {
       remaining: GAME.skillPointsPerLifepath - totalSpent,
       valid: totalSpent <= GAME.skillPointsPerLifepath && Object.values(skillCosts).every(cost => cost <= GAME.skillPointCapPerStage)
     };
+  });
+  const noise = character.noise;
+  Object.entries(noise).forEach(([skillId, amount]) => {
+    const advance = Number(amount) || 0;
+    if (!advance) return;
+    ratings[skillId] += advance;
   });
   return { ratings, totalPresetBoosts, stages };
 }
@@ -551,8 +557,9 @@ function setSkillMode(stageIndex, mode) {
 function defaultPriorityOrder(stageIndex) {
   const available = availableSkillsAtStage(stageIndex).map(skill => skill.id);
   const professional = available.filter(skillId => GAME.professionalSkills.some(skill => skill.id === skillId));
-  const other = available.filter(skillId => !professional.includes(skillId));
-  return [...professional, ...other];
+  const combat = available.filter(skillId => GAME.combatSkills.some(skill => skill.id === skillId));
+  const other = available.filter(skillId => !professional.includes(skillId) && !combat.includes(skillId));
+  return [...professional, ...combat, ...other];
 }
 
 function getPriorityOrder(stageIndex) {
@@ -585,8 +592,11 @@ function priorityBudgetDistribution(stage) {
   if (!order.length) return order.map(() => 0);
 
   // Reset
+  if (!character.stageAllocations[stage.index]) {
+    character.stageAllocations[stage.index] = {};
+  }
   order.forEach(skillId => {
-    let currentValue = stage.afterPresetRatings[skillId];
+    let currentValue = stage.afterPresetRatings[skillId] || 0;
     let currentIncrease = character.stageAllocations[stage.index][skillId] || 0;
     const cost = costToRaiseSkill(currentValue + currentIncrease, currentValue);
     budget += cost;
@@ -616,6 +626,38 @@ function priorityBudgetDistribution(stage) {
     }
     character.stageAllocations[stage.index][skillId] = increase;
   });
+}
+
+function addNoise() {
+  character.noise = {};
+  let training = trainingState();
+  const unlockedProfessional = GAME.professionalSkills.filter(skill => unlockedProfessionalSkillIds().includes(skill.id));
+  let skills = [...unlockedProfessional, ...GAME.standardSkills, ...GAME.combatSkills];
+  let lastStage = training.stages[training.stages.length - 1];
+  let budget = remainingSkillPoints();
+  // Prune 10 random skills
+  let skillCounter = 10;
+  for (i = 0; i < skillCounter; i++) {
+    let skillIndex = Math.floor(Math.random() * skills.length);
+    let skillId = skills[skillIndex].id;
+    let currentValue = skillValue(skillId);
+    budget += costToRaiseSkill(currentValue, currentValue - 1);
+    if (currentValue <= 20) continue;
+    character.noise[skillId] = -1;
+  }
+  // Distribute budget to skill until it is gone
+  let attempts = 1000;
+  while (budget > 0) {
+    if (attempts-- === 0) break;
+    let skillIndex = Math.floor(Math.random() * skills.length);
+    let skillId = skills[skillIndex].id;
+    let currentValue = skillValue(skillId);
+    if (currentValue >= 99) continue;
+    let nextCost = costToRaiseSkill(currentValue + 1, currentValue);
+    if (nextCost > budget) continue;
+    budget -= nextCost;
+    character.noise[skillId] = (character.noise[skillId] || 0) + 1;
+  }
 }
 
 function renderSkillModeToggle(stage) {
@@ -774,6 +816,8 @@ function renderReview() {
         <div class="review-skills-heading">
           <div><span class="preview-label">Complete skill profile</span><h3>Skills</h3></div>
           <p><strong>${spentSkillPoints()}</strong> / ${skillPointBudget()} training points spent</p>
+          <button class="button ghost" data-reset-stage-allocations="0">Reset allocations</button>
+          <button class="button ghost" data-add-noise-stage="0">Add noise</button>
         </div>
         <div class="review-stage-costs">${trainingState().stages.map(stage => {
           const path = getLifepath(stage.id, stage.index);
@@ -828,7 +872,11 @@ function bindStepEvents() {
     saveCharacter(); render();
   }));
   document.querySelectorAll("[data-skill-stage]").forEach(button => button.addEventListener("click", () => {
-    if (!button.disabled) { activeSkillStage = Number(button.dataset.skillStage); render(); }
+    if (!button.disabled) { 
+      setSkillMode(Number(button.dataset.skillStage), "manual");
+      activeSkillStage = Number(button.dataset.skillStage);
+      saveCharacter(); render();
+    }
   }));
   document.querySelectorAll("[data-skill-mode]").forEach(button => button.addEventListener("click", () => {
     setSkillMode(activeSkillStage, button.dataset.skillMode);
@@ -836,7 +884,15 @@ function bindStepEvents() {
   }));
   document.querySelectorAll("[data-reset-stage-allocations]").forEach(button => button.addEventListener("click", () => {
     const stageIndex = Number(button.dataset.resetStageAllocations);
-    character.stageAllocations[stageIndex] = {};
+    cleanStageIndexAndUp(stageIndex);
+    setSkillMode(stageIndex, "manual");
+    saveCharacter();
+    render();
+  }));
+  document.querySelectorAll("[data-add-noise-stage]").forEach(button => button.addEventListener("click", () => {
+    const stageIndex = character.lifepaths.length;
+    cleanStageIndexAndUp(stageIndex);
+    addNoise();
     saveCharacter();
     render();
   }));
@@ -860,7 +916,7 @@ function bindStepEvents() {
       reorderPrioritySkills(activeSkillStage, draggedId, targetId);
       const stage = trainingState().stages[activeSkillStage];
       priorityBudgetDistribution(stage);
-      render();
+      saveCharacter(); render();
     });
   });
   document.querySelectorAll("[data-skill]").forEach(counter => counter.querySelectorAll("button").forEach(button => button.addEventListener("click", () => {
@@ -883,7 +939,9 @@ function bindStepEvents() {
         stageCost += cost;
       }
     }
-    character.stageAllocations[activeSkillStage][id] = freeAdvance; saveCharacter(); render();
+    character.stageAllocations[activeSkillStage][id] = freeAdvance;    
+    cleanStageIndexAndUp(activeSkillStage+1);
+    saveCharacter(); render();
   })));
   document.querySelectorAll("[data-feature]").forEach(button => button.addEventListener("click", () => {
     const id = button.dataset.feature;
@@ -891,6 +949,15 @@ function bindStepEvents() {
     else character.features.push(id);
     saveCharacter(); render();
   }));
+}
+
+function cleanStageIndexAndUp(stageIndex) {
+  if (stageIndex < 0 || stageIndex >= character.lifepaths.length) return;
+  if (!character.stageAllocations[stageIndex]) character.stageAllocations[stageIndex] = {};
+  for (nextStageIndex = stageIndex; nextStageIndex < character.lifepaths.length; nextStageIndex++) {
+    character.stageAllocations[nextStageIndex] = {};
+  }
+  saveCharacter(); render();
 }
 
 function renderPreview() {
