@@ -20,6 +20,7 @@ Edit the `GAME` object at the top of `app.js` to replace:
 
 - ancestry choices with availability flags for future playtest options
 - combat, standard, and professional skill lists
+- fixed core skills that start at 60 and stay outside the priority order
 - the number of professional skills each character chooses
 - the priority-array values used to assign final skill ratings
 - skill-linked perks that unlock when skills reach 50+

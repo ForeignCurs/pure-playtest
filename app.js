@@ -19,57 +19,65 @@ const GAME = {
     { id: "athletics", name: "Athletics" },
     { id: "brawn", name: "Brawn" },
     { id: "conceal", name: "Conceal" },
-    { id: "deceive", name: "Deceive" },
+    { id: "stealth", name: "Stealth" },
+    { id: "swim", name: "Swim" },
+    { id: "boating", name: "Boating" },
     { id: "drive", name: "Drive" },
+    { id: "ride", name: "Ride" },
     { id: "first-aid", name: "First Aid" },
+    { id: "deception", name: "Deception" },
     { id: "influence", name: "Influence" },
     { id: "insight", name: "Insight" },
-    { id: "intimidate", name: "Intimidate" },
-    { id: "language", name: "Language" },
-    { id: "local-knowledge", name: "Local Knowledge" },
-    { id: "navigate", name: "Navigate" },
-    { id: "perception", name: "Perception" },
-    { id: "ride", name: "Ride" },
-    { id: "sing", name: "Sing" },
-    { id: "sleight", name: "Sleight of Hand" },
-    { id: "stealth", name: "Stealth" },
-    { id: "survival", name: "Survival" },
-    { id: "swim", name: "Swim" },
-    { id: "customs", name: "Customs" }
+    { id: "intimidation", name: "Intimidation" },
+    { id: "performance", name: "Performance" },
+    { id: "investigation", name: "Investigation" },
+    { id: "perception", name: "Perception" }
+  ],
+  fixedSkills: [
+    { id: "customs", name: "Customs", value: 60 },
+    { id: "language-common", name: "Language (Common Tongue)", value: 60 }
   ],
   combatSkills: [
+    { id: "brawling", name: "Brawling" },
+    { id: "melee-combat", name: "Melee Combat" },
+    { id: "ranged-combat", name: "Ranged Combat" },
+    { id: "physical-defense", name: "Physical Defense" },
     { id: "endurance", name: "Endurance" },
-    { id: "evade", name: "Evade" },
     { id: "willpower", name: "Willpower" },
-    { id: "melee", name: "Melee" },
-    { id: "ranged", name: "Ranged" }
+    { id: "dodge", name: "Dodge" }
   ],
   professionalSkills: [
+    { id: "engineering", name: "Engineering" },
+    { id: "instruction", name: "Instruction" },
+    { id: "language-any", name: "Language (any)" },
+    { id: "literacy", name: "Literacy" },
+    { id: "lore-any", name: "Lore (any)" },
+    { id: "mechanisms", name: "Mechanisms" },
+    { id: "oratory", name: "Oratory" },
+    { id: "research", name: "Research" },
+    { id: "theology-any", name: "Theology (any)" },
+    { id: "courtesy", name: "Courtesy" },
+    { id: "appraisal", name: "Appraisal" },
     { id: "alchemy", name: "Alchemy" },
-    { id: "animal-training", name: "Animal Training" },
-    { id: "artifice", name: "Artifice" },
+    { id: "art-any", name: "Art (any)" },
     { id: "bureaucracy", name: "Bureaucracy" },
     { id: "commerce", name: "Commerce" },
-    { id: "command", name: "Command" },
-    { id: "craft", name: "Craft" },
-    { id: "engineering", name: "Engineering" },
-    { id: "entertain", name: "Entertain" },
-    { id: "farming", name: "Farming" },
-    { id: "healing", name: "Healing" },
-    { id: "heraldry", name: "Heraldry" },
-    { id: "hunting", name: "Hunting" },
-    { id: "law", name: "Law" },
-    { id: "leadership", name: "Leadership" },
-    { id: "lore", name: "Lore" },
-    { id: "medicine", name: "Medicine" },
-    { id: "navigation-sea", name: "Seamanship" },
-    { id: "oratory", name: "Oratory" },
-    { id: "performance", name: "Performance" },
-    { id: "religion", name: "Religion" },
-    { id: "scholarship", name: "Scholarship" },
-    { id: "scouting", name: "Scouting" },
-    { id: "tradecraft", name: "Tradecraft" },
-    { id: "warfare", name: "Warfare" },
+    { id: "craft-any", name: "Craft (any)" },
+    { id: "profession-any", name: "Profession (any)" },
+    { id: "surgery", name: "Surgery" },
+    { id: "animal-handling", name: "Animal Handling" },
+    { id: "animal-training-any", name: "Animal Training (any)" },
+    { id: "navigation", name: "Navigation" },
+    { id: "seamanship", name: "Seamanship" },
+    { id: "survival", name: "Survival" },
+    { id: "track", name: "Track" },
+    { id: "acrobatics", name: "Acrobatics" },
+    { id: "gambling", name: "Gambling" },
+    { id: "forgery", name: "Forgery" },
+    { id: "lockpicking", name: "Lockpicking" },
+    { id: "impersonation", name: "Impersonation" },
+    { id: "sleight", name: "Sleight" },
+    { id: "streetwise", name: "Streetwise" },
     { id: "combat-magic", name: "Combat Magic", hidden: true }
   ],
   perkTemplates: {
@@ -78,13 +86,13 @@ const GAME = {
       { id: "soft-step", name: "Soft Step", description: "When you move slowly, minor clutter and loose ground do not worsen your Stealth modifier." },
       { id: "vanishing-angle", name: "Vanishing Angle", description: "You gain a small edge when using doorways, corners, or crowds to break line of sight." }
     ],
-    melee: [
-      { id: "close-quarters", name: "Close Quarters", description: "Crowded or cramped spaces no longer impose minor penalties on your Melee checks." },
-      { id: "steady-guard", name: "Steady Guard", description: "When defending a fixed position, you gain a small edge on Melee resistance." },
+    "melee-combat": [
+      { id: "close-quarters", name: "Close Quarters", description: "Crowded or cramped spaces no longer impose minor penalties on your Melee Combat checks." },
+      { id: "steady-guard", name: "Steady Guard", description: "When defending a fixed position, you gain a small edge on Melee Combat resistance." },
       { id: "weapon-familiarity", name: "Weapon Familiarity", description: "Choose one weapon group; routine use of that group ignores minor handling penalties." }
     ],
-    ranged: [
-      { id: "measured-shot", name: "Measured Shot", description: "If you spend a moment aiming, light cover has less impact on your Ranged modifier." },
+    "ranged-combat": [
+      { id: "measured-shot", name: "Measured Shot", description: "If you spend a moment aiming, light cover has less impact on your Ranged Combat modifier." },
       { id: "quick-nock", name: "Quick Nock", description: "Drawing or loading simple ranged weapons under pressure is less likely to penalise you." },
       { id: "range-finder", name: "Range Finder", description: "You can judge practical range bands at a glance in ordinary visibility." }
     ],
@@ -98,8 +106,8 @@ const GAME = {
       { id: "stubborn-core", name: "Stubborn Core", description: "Coercion from social pressure has less impact on your Willpower modifier." },
       { id: "steady-mind", name: "Steady Mind", description: "Distracting noise or chaos does not worsen ordinary concentration-based Willpower checks." }
     ],
-    evade: [
-      { id: "slip-through", name: "Slip Through", description: "Moving through a tight crowd or cluttered room has less impact on your Evade modifier." },
+    dodge: [
+      { id: "slip-through", name: "Slip Through", description: "Moving through a tight crowd or cluttered room has less impact on your Dodge modifier." },
       { id: "fast-recovery", name: "Fast Recovery", description: "After diving, stumbling, or dropping prone, you regain your footing with less penalty." },
       { id: "read-the-shift", name: "Read the Shift", description: "You gain a small edge when evading a danger you have already seen once this scene." }
     ]
@@ -196,7 +204,7 @@ function allSelectedSkills(professionalIds = character.professionalSkills) {
 }
 
 function allSkillDefinitions() {
-  return [...GAME.combatSkills, ...GAME.standardSkills, ...GAME.professionalSkills];
+  return [...GAME.fixedSkills, ...GAME.combatSkills, ...GAME.standardSkills, ...GAME.professionalSkills];
 }
 
 function normalizeSkillOrder(order = character.skillOrder, professionalIds = character.professionalSkills) {
@@ -219,6 +227,8 @@ function skillRank(id) {
 }
 
 function skillValue(id) {
+  const fixed = findById(GAME.fixedSkills, id);
+  if (fixed) return fixed.value;
   const rank = skillRank(id);
   return rank < 0 ? 20 : SKILL_ARRAY[rank] ?? 20;
 }
@@ -386,7 +396,7 @@ function renderPrioritySkill(skillId, index, total) {
 }
 
 function unlockedPerkSkills() {
-  return allSelectedSkills().filter(skill => skillValue(skill.id) >= 50);
+  return [...GAME.fixedSkills, ...allSelectedSkills()].filter(skill => skillValue(skill.id) >= 50);
 }
 
 function perksComplete() {
@@ -489,6 +499,7 @@ function renderReview() {
           <div><span class="preview-label">Priority array</span><h3>Skills</h3></div>
           <p><strong>${normalizeSkillOrder().length}</strong> ranked skills</p>
         </div>
+        ${renderReviewSkillGroup("Core skills", GAME.fixedSkills)}
         ${renderReviewSkillGroup("Combat skills", GAME.combatSkills)}
         ${renderReviewSkillGroup("Standard skills", GAME.standardSkills)}
         ${renderReviewSkillGroup("Professional skills", chosenProfessionalSkills())}
@@ -608,9 +619,9 @@ function moveSkill(skillId, direction) {
 function renderPreview() {
   const ancestry = findById(GAME.ancestries, character.ancestry);
   const perks = unlockedPerkSkills().map(skill => resolvedPerkForSkill(skill)).filter(Boolean);
-  const bestSkills = normalizeSkillOrder().slice(0, 5)
-    .map(id => findById(allSelectedSkills(), id))
-    .filter(Boolean);
+  const bestSkills = [...GAME.fixedSkills, ...normalizeSkillOrder().map(id => findById(allSelectedSkills(), id)).filter(Boolean)]
+    .sort((a, b) => skillValue(b.id) - skillValue(a.id))
+    .slice(0, 5)
   el("characterPreview").innerHTML = `
     <span class="preview-label">Character folio</span>
     <div class="preview-name">${escapeHtml(character.name) || "Unnamed Wanderer"}</div>
