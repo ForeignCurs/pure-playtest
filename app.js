@@ -504,7 +504,7 @@ function renderProfessionalChoice() {
       if (skill.repeatable) return renderRepeatableProfessionalChoice(skill);
       const selected = character.professionalSkills.includes(skill.id);
       const locked = !selected && character.professionalSkills.length >= GAME.professionalSkillChoices;
-      return `<button class="choice-card ${selected ? "selected" : ""}" data-professional-skill="${skill.id}" ${locked ? "disabled" : ""}>
+      return `<button class="choice-card ${skill.magicTradition ? "magic-choice-card" : ""} ${selected ? "selected" : ""}" data-professional-skill="${skill.id}" ${locked ? "disabled" : ""}>
         <div><h3>${skill.name}</h3><p>${selected ? "Included in your final skill priority list." : "Available professional skill."}</p></div>
         <small>${selected ? "Selected" : locked ? "Limit reached" : "Choose"}</small>
       </button>`;
@@ -514,7 +514,7 @@ function renderProfessionalChoice() {
 function renderRepeatableProfessionalChoice(skill) {
   const selected = chosenProfessionalSkills().filter(item => item.baseId === skill.id);
   const limitReached = character.professionalSkills.length >= GAME.professionalSkillChoices;
-  return `<article class="choice-card repeatable-skill-card ${selected.length ? "selected" : ""}">
+  return `<article class="choice-card repeatable-skill-card ${skill.magicTradition ? "magic-choice-card" : ""} ${selected.length ? "selected" : ""}">
     <div><h3>${skill.name}</h3><p>Can be chosen multiple times. Each choice needs its own specialisation.</p></div>
     ${selected.length ? `<div class="selected-specialisations">${selected.map(item => `
       <span>${item.specialization}<button type="button" data-remove-professional="${item.id}" aria-label="Remove ${escapeHtml(item.name)}">×</button></span>`).join("")}</div>` : ""}
