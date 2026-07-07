@@ -562,7 +562,6 @@ function renderPrioritySkill(skillId, index, total) {
     <span class="priority-handle" aria-hidden="true">⋮⋮</span>
     <div class="priority-skill-main">
       <strong>${index + 1}. ${skill.name}</strong>
-      <small>${isMagic ? "Magic" : isProfessional ? "Professional" : isCombat ? "Combat" : "Standard"} skill</small>
     </div>
     <span class="priority-share">${SKILL_ARRAY[index] ?? 20}</span>
     <div class="priority-buttons">
