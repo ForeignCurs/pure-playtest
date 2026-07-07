@@ -335,12 +335,7 @@ function normalizeSkillOrder(order = character.skillOrder, professionalIds = cha
       ...available.filter(id => !professionalSet.has(id))
     ];
   }
-  return [
-    ...cleaned.filter(id => professionalSet.has(id)),
-    ...missing.filter(id => professionalSet.has(id)),
-    ...cleaned.filter(id => !professionalSet.has(id)),
-    ...missing.filter(id => !professionalSet.has(id))
-  ];
+  return [...cleaned, ...missing];
 }
 
 function skillName(id) {
@@ -538,9 +533,6 @@ function renderSkills() {
   const topValue = SKILL_ARRAY[0];
   const bottomValue = SKILL_ARRAY[Math.min(order.length, SKILL_ARRAY.length) - 1] ?? 20;
   return heading("Skill priority", "Put the full skill list in order.", `Rank all ${order.length} skills. The top skill is ${topValue}; the values step down through the array, and any extra skills beyond the array stay at 20.`) + `
-    <div class="array-preview">
-      ${SKILL_ARRAY.map((value, index) => `<span><i>${index + 1}</i>${value}</span>`).join("")}
-    </div>
     <div class="budget-strip">
       <span>Current range</span>
       <strong>${topValue} to ${bottomValue}</strong>
