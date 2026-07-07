@@ -22,8 +22,9 @@ Edit the `GAME` object at the top of `app.js` to replace:
 - combat, standard, and professional skill lists
 - the number of professional skills each character chooses
 - the priority-array values used to assign final skill ratings
+- skill-linked perks that unlock when skills reach 50+
 - hidden future professional skills such as Combat Magic
-- features and feature costs
+- placeholder and custom perk text
 
 Character drafts are saved in the browser with `localStorage`. The **Export PDF**
 button opens the browser print dialog with an A4-optimized character sheet; choose

@@ -7,7 +7,6 @@ const SKILL_ARRAY = [
 
 const GAME = {
   title: "PuRe Playtest",
-  featureBudget: 5,
   professionalSkillChoices: 7,
   ancestries: [
     { id: "human", name: "Human", available: true, description: "Adaptable, ambitious, and shaped by a great variety of cultures.", benefit: "Available in this playtest" },
@@ -73,14 +72,38 @@ const GAME = {
     { id: "warfare", name: "Warfare" },
     { id: "combat-magic", name: "Combat Magic", hidden: true }
   ],
-  features: [
-    { id: "iron-grip", name: "Iron Grip", cost: 2, description: "Once per scene, hold fast against an overwhelming physical force." },
-    { id: "silver-tongue", name: "Silver Tongue", cost: 2, description: "Gain an edge when bargaining with someone who wants something from you." },
-    { id: "keen-senses", name: "Keen Senses", cost: 1, description: "Notice small disturbances and concealed details before others do." },
-    { id: "old-magic", name: "Whisper of Old Magic", cost: 3, description: "Perform a small, uncanny working tied to your origin." },
-    { id: "steadfast", name: "Steadfast", cost: 2, description: "Ignore the first fear or coercion effect in each session." },
-    { id: "many-roads", name: "Many Roads", cost: 1, description: "Declare a useful contact in a settlement you have visited." }
-  ]
+  perkTemplates: {
+    stealth: [
+      { id: "urban-stealther", name: "Urban Stealther", description: "Moving at full speed in urban environments has no negative impact on your Stealth modifier." },
+      { id: "soft-step", name: "Soft Step", description: "When you move slowly, minor clutter and loose ground do not worsen your Stealth modifier." },
+      { id: "vanishing-angle", name: "Vanishing Angle", description: "You gain a small edge when using doorways, corners, or crowds to break line of sight." }
+    ],
+    melee: [
+      { id: "close-quarters", name: "Close Quarters", description: "Crowded or cramped spaces no longer impose minor penalties on your Melee checks." },
+      { id: "steady-guard", name: "Steady Guard", description: "When defending a fixed position, you gain a small edge on Melee resistance." },
+      { id: "weapon-familiarity", name: "Weapon Familiarity", description: "Choose one weapon group; routine use of that group ignores minor handling penalties." }
+    ],
+    ranged: [
+      { id: "measured-shot", name: "Measured Shot", description: "If you spend a moment aiming, light cover has less impact on your Ranged modifier." },
+      { id: "quick-nock", name: "Quick Nock", description: "Drawing or loading simple ranged weapons under pressure is less likely to penalise you." },
+      { id: "range-finder", name: "Range Finder", description: "You can judge practical range bands at a glance in ordinary visibility." }
+    ],
+    endurance: [
+      { id: "deep-reserves", name: "Deep Reserves", description: "Harsh travel and long watches impose one step less fatigue pressure on Endurance checks." },
+      { id: "hard-to-drop", name: "Hard to Drop", description: "When injury would slow you, you gain a small edge on Endurance tests to keep moving." },
+      { id: "weathered", name: "Weathered", description: "Ordinary cold, heat, or rain has less impact on your Endurance modifier." }
+    ],
+    willpower: [
+      { id: "clear-breath", name: "Clear Breath", description: "A short pause lets you reduce minor fear, stress, or panic penalties on Willpower checks." },
+      { id: "stubborn-core", name: "Stubborn Core", description: "Coercion from social pressure has less impact on your Willpower modifier." },
+      { id: "steady-mind", name: "Steady Mind", description: "Distracting noise or chaos does not worsen ordinary concentration-based Willpower checks." }
+    ],
+    evade: [
+      { id: "slip-through", name: "Slip Through", description: "Moving through a tight crowd or cluttered room has less impact on your Evade modifier." },
+      { id: "fast-recovery", name: "Fast Recovery", description: "After diving, stumbling, or dropping prone, you regain your footing with less penalty." },
+      { id: "read-the-shift", name: "Read the Shift", description: "You gain a small edge when evading a danger you have already seen once this scene." }
+    ]
+  }
 };
 
 const STEPS = [
@@ -88,7 +111,7 @@ const STEPS = [
   { id: "ancestry", label: "Ancestry" },
   { id: "specialisation", label: "Specialisation" },
   { id: "skills", label: "Skill Order" },
-  { id: "features", label: "Features" },
+  { id: "perks", label: "Perks" },
   { id: "review", label: "Review" }
 ];
 
@@ -103,7 +126,7 @@ const freshCharacter = () => ({
   professionalSkills: [],
   skillOrder: [],
   skillOrderTouched: false,
-  features: [],
+  perks: {},
   notes: ""
 });
 
@@ -131,6 +154,7 @@ function loadCharacter() {
     migrated.skillOrderTouched = saved.skillOrderTouched === true;
     migrated.skillOrder = Array.isArray(saved.skillOrder) && migrated.skillOrderTouched ? saved.skillOrder : [];
     migrated.skillOrder = normalizeSkillOrder(migrated.skillOrder, migrated.professionalSkills);
+    migrated.perks = typeof saved.perks === "object" && saved.perks ? saved.perks : {};
     return migrated;
   } catch {
     return freshCharacter();
@@ -142,6 +166,7 @@ function saveCharacter() {
     .filter(id => selectableProfessionalSkills().some(skill => skill.id === id))
     .slice(0, GAME.professionalSkillChoices);
   character.skillOrder = normalizeSkillOrder(character.skillOrder, character.professionalSkills);
+  pruneLockedPerks();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(character));
   const status = el("saveStatus");
   if (status) {
@@ -198,17 +223,13 @@ function skillValue(id) {
   return rank < 0 ? 20 : SKILL_ARRAY[rank] ?? 20;
 }
 
-function spentFeaturePoints() {
-  return character.features.reduce((sum, id) => sum + (findById(GAME.features, id)?.cost || 0), 0);
-}
-
 function completionChecks() {
   return [
     !!character.name.trim() && !!character.gender && !!character.concept.trim(),
     !!character.ancestry,
     character.professionalSkills.length === GAME.professionalSkillChoices,
     skillOrderComplete(),
-    spentFeaturePoints() <= GAME.featureBudget,
+    perksComplete(),
     skillOrderComplete()
   ];
 }
@@ -233,7 +254,9 @@ function updateProgress() {
     ? checks[1]
       ? checks[2]
         ? checks[3]
-          ? "Ready for finishing touches."
+          ? checks[4]
+            ? "Ready for finishing touches."
+            : "Choose perks for skills at 50 or higher."
           : "Put your skills in priority order."
         : `Choose ${GAME.professionalSkillChoices} professional skills.`
       : "Choose an ancestry."
@@ -242,7 +265,7 @@ function updateProgress() {
 
 function render() {
   renderStepNav();
-  const renderers = [renderIdentity, renderAncestry, renderProfessionalChoice, renderSkills, renderFeatures, renderReview];
+  const renderers = [renderIdentity, renderAncestry, renderProfessionalChoice, renderSkills, renderPerks, renderReview];
   el("stepContent").innerHTML = renderers[currentStep]();
   el("stepCounter").textContent = `Step ${currentStep + 1} of ${STEPS.length}`;
   el("backButton").disabled = currentStep === 0;
@@ -362,23 +385,90 @@ function renderPrioritySkill(skillId, index, total) {
   </div>`;
 }
 
-function renderFeatures() {
-  const remaining = GAME.featureBudget - spentFeaturePoints();
-  return heading("Talents & peculiarities", "Choose what sets you apart.", "Features are signature abilities. Mix smaller talents or commit to one potent gift.") + `
-    <div class="budget-strip ${remaining < 0 ? "over" : ""}"><span>Feature points remaining</span><strong>${remaining}</strong></div>
-    <div class="feature-list">${GAME.features.map(feature => {
-      const selected = character.features.includes(feature.id);
-      const affordable = selected || feature.cost <= remaining;
-      return `<div class="feature-card ${selected ? "selected" : ""}">
-        <div><h3>${feature.name}</h3><p>${feature.description}</p></div>
-        <button class="button ${selected ? "ghost" : "primary"}" data-feature="${feature.id}" ${!affordable ? "disabled" : ""}>${selected ? "Remove" : `${feature.cost} pt${feature.cost > 1 ? "s" : ""}`}</button>
-      </div>`;
-    }).join("")}</div>`;
+function unlockedPerkSkills() {
+  return allSelectedSkills().filter(skill => skillValue(skill.id) >= 50);
+}
+
+function perksComplete() {
+  const unlocked = unlockedPerkSkills();
+  return unlocked.length > 0 && unlocked.every(skill => selectedPerkForSkill(skill.id));
+}
+
+function pruneLockedPerks() {
+  const unlockedIds = new Set(unlockedPerkSkills().map(skill => skill.id));
+  character.perks = Object.fromEntries(Object.entries(character.perks || {}).filter(([skillId]) => unlockedIds.has(skillId)));
+}
+
+function perkOptionsForSkill(skill) {
+  const templates = GAME.perkTemplates[skill.id] || [];
+  if (templates.length) return templates;
+  return [
+    { id: `${skill.id}-focused-practice`, name: `${skill.name} Focus`, description: `Choose one narrow use of ${skill.name}; minor situational penalties apply one step less often.` },
+    { id: `${skill.id}-reliable-hand`, name: `Reliable ${skill.name}`, description: `When the task is routine but pressured, you gain a small edge on ${skill.name} checks.` },
+    { id: `${skill.id}-situational-edge`, name: `${skill.name} Edge`, description: `Name a specific environment or circumstance where your ${skill.name} modifier improves slightly.` }
+  ];
+}
+
+function selectedPerkForSkill(skillId) {
+  const perk = character.perks?.[skillId];
+  if (!perk) return null;
+  if (perk.type === "custom") {
+    return perk.name?.trim() || perk.description?.trim() ? perk : null;
+  }
+  return perk.id ? perk : null;
+}
+
+function resolvedPerkForSkill(skill) {
+  const perk = selectedPerkForSkill(skill.id);
+  if (!perk) return null;
+  if (perk.type === "custom") {
+    return {
+      name: perk.name?.trim() || `Custom ${skill.name} Perk`,
+      description: perk.description?.trim() || "Custom perk effect to be defined."
+    };
+  }
+  return perkOptionsForSkill(skill).find(option => option.id === perk.id) || null;
+}
+
+function renderPerks() {
+  const unlocked = unlockedPerkSkills();
+  return heading("Perks", "Choose one perk for every skill at 50+.", "Perks are small skill-specific tricks. Placeholder perks are available for now, and every unlocked skill can also take a custom perk.") + `
+    <div class="budget-strip">
+      <span>Perk slots unlocked</span>
+      <strong>${unlocked.length}</strong>
+    </div>
+    ${unlocked.length ? `<div class="perk-list">${unlocked.map(renderPerkSlot).join("")}</div>` : `<div class="locked-panel"><strong>No perks unlocked yet</strong><p>Move a skill to 50 or higher in the Skill Order tab to unlock its perk slot.</p></div>`}`;
+}
+
+function renderPerkSlot(skill) {
+  const selected = character.perks?.[skill.id] || {};
+  const options = perkOptionsForSkill(skill);
+  return `<article class="perk-card ${selectedPerkForSkill(skill.id) ? "selected" : ""}">
+    <div class="perk-card-heading">
+      <div><span class="preview-label">${skillValue(skill.id)} skill</span><h3>${skill.name}</h3></div>
+      <small>1 perk unlocked</small>
+    </div>
+    <div class="perk-options">${options.map(option => `
+      <label class="perk-option ${selected.id === option.id ? "selected" : ""}">
+        <input type="radio" name="perk-${skill.id}" data-perk-choice="${skill.id}" value="${option.id}" ${selected.id === option.id ? "checked" : ""}>
+        <span><strong>${option.name}</strong><em>${option.description}</em></span>
+      </label>`).join("")}</div>
+    <div class="custom-perk ${selected.type === "custom" ? "selected" : ""}">
+      <label class="perk-option">
+        <input type="radio" name="perk-${skill.id}" data-perk-custom="${skill.id}" ${selected.type === "custom" ? "checked" : ""}>
+        <span><strong>Custom perk</strong><em>Write your own minor boost for ${skill.name}.</em></span>
+      </label>
+      <div class="custom-perk-fields">
+        <input data-custom-perk-field="${skill.id}" data-custom-perk-key="name" value="${escapeHtml(selected.type === "custom" ? selected.name || "" : "")}" placeholder="Perk name">
+        <textarea data-custom-perk-field="${skill.id}" data-custom-perk-key="description" placeholder="What does this perk do?">${escapeHtml(selected.type === "custom" ? selected.description || "" : "")}</textarea>
+      </div>
+    </div>
+  </article>`;
 }
 
 function renderReview() {
   const ancestry = findById(GAME.ancestries, character.ancestry);
-  const features = character.features.map(id => findById(GAME.features, id)).filter(Boolean);
+  const perks = unlockedPerkSkills().map(skill => ({ skill, perk: resolvedPerkForSkill(skill) })).filter(item => item.perk);
   return heading("The road awaits", "Review your character.", "Everything below will become your print-ready character sheet. Use your browser’s PDF option when exporting.") + `
     <div class="review-sheet">
       <h2>${escapeHtml(character.name) || "Unnamed Wanderer"}</h2>
@@ -390,7 +480,7 @@ function renderReview() {
           <section class="review-block"><h3>Professional skills</h3>${chosenProfessionalSkills().length ? `<ul>${chosenProfessionalSkills().map(skill => `<li>${skill.name}</li>`).join("")}</ul>` : "<p>None chosen.</p>"}</section>
         </div>
         <div>
-          <section class="review-block"><h3>Features</h3>${features.length ? `<ul>${features.map(f => `<li><strong>${f.name}.</strong> ${f.description}</li>`).join("")}</ul>` : "<p>None chosen.</p>"}</section>
+          <section class="review-block"><h3>Perks</h3>${perks.length ? `<ul>${perks.map(({ skill, perk }) => `<li><strong>${perk.name}</strong> <em>(${skill.name})</em>. ${perk.description}</li>`).join("")}</ul>` : "<p>No perks chosen.</p>"}</section>
           <section class="review-block"><h3>Adventurer's notes</h3><textarea data-field="notes" placeholder="Allies, ambitions, burdens...">${escapeHtml(character.notes)}</textarea></section>
         </div>
       </div>
@@ -472,12 +562,25 @@ function bindStepEvents() {
     saveCharacter();
     render();
   }));
-  document.querySelectorAll("[data-feature]").forEach(button => button.addEventListener("click", () => {
-    const id = button.dataset.feature;
-    if (character.features.includes(id)) character.features = character.features.filter(feature => feature !== id);
-    else character.features.push(id);
+  document.querySelectorAll("[data-perk-choice]").forEach(input => input.addEventListener("change", () => {
+    const skillId = input.dataset.perkChoice;
+    character.perks[skillId] = { type: "template", id: input.value };
     saveCharacter();
     render();
+  }));
+  document.querySelectorAll("[data-perk-custom]").forEach(input => input.addEventListener("change", () => {
+    const skillId = input.dataset.perkCustom;
+    const current = character.perks[skillId]?.type === "custom" ? character.perks[skillId] : {};
+    character.perks[skillId] = { type: "custom", name: current.name || "", description: current.description || "" };
+    saveCharacter();
+    render();
+  }));
+  document.querySelectorAll("[data-custom-perk-field]").forEach(input => input.addEventListener("input", () => {
+    const skillId = input.dataset.customPerkField;
+    const key = input.dataset.customPerkKey;
+    const current = character.perks[skillId]?.type === "custom" ? character.perks[skillId] : {};
+    character.perks[skillId] = { type: "custom", name: current.name || "", description: current.description || "", [key]: input.value };
+    saveCharacter();
   }));
 }
 
@@ -504,7 +607,7 @@ function moveSkill(skillId, direction) {
 
 function renderPreview() {
   const ancestry = findById(GAME.ancestries, character.ancestry);
-  const features = character.features.map(id => findById(GAME.features, id)).filter(Boolean);
+  const perks = unlockedPerkSkills().map(skill => resolvedPerkForSkill(skill)).filter(Boolean);
   const bestSkills = normalizeSkillOrder().slice(0, 5)
     .map(id => findById(allSelectedSkills(), id))
     .filter(Boolean);
@@ -516,7 +619,7 @@ function renderPreview() {
     <section class="preview-section"><h4>Ancestry</h4><p class="${ancestry ? "" : "empty-note"}">${ancestry?.name || "Not yet chosen"}</p></section>
     <section class="preview-section"><h4>Professional skills · ${character.professionalSkills.length}/${GAME.professionalSkillChoices}</h4>${chosenProfessionalSkills().length ? `<ul>${chosenProfessionalSkills().map(skill => `<li>${skill.name}</li>`).join("")}</ul>` : `<p class="empty-note">No professional skills chosen</p>`}</section>
     <section class="preview-section"><h4>Best skills</h4>${bestSkills.length ? `<ul>${bestSkills.map((skill, index) => `<li>${skill.name} ${SKILL_ARRAY[index] ?? 20}</li>`).join("")}</ul>` : `<p class="empty-note">No priority assigned</p>`}</section>
-    <section class="preview-section"><h4>Features</h4>${features.length ? `<ul>${features.map(f => `<li>${f.name}</li>`).join("")}</ul>` : `<p class="empty-note">No features chosen</p>`}</section>`;
+    <section class="preview-section"><h4>Perks</h4>${perks.length ? `<ul>${perks.map(perk => `<li>${perk.name}</li>`).join("")}</ul>` : `<p class="empty-note">No perks chosen</p>`}</section>`;
 }
 
 function showToast(message) {

@@ -273,15 +273,26 @@ input:focus, textarea:focus { border-color: var(--rust); box-shadow: 0 0 0 3px r
 }
 .stat-counter button:disabled { opacity: .3; cursor: default; }
 .stat-counter strong { width: 20px; text-align: center; font: 600 20px "Newsreader", serif; }
-.feature-list { display: grid; gap: 11px; }
-.feature-card {
-  display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center;
-  padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,.55);
+.perk-list { display: grid; gap: 14px; }
+.perk-card {
+  padding: 16px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,.55);
 }
-.feature-card.selected { border-color: var(--sage); background: #f5f8f2; }
-.feature-card h3 { margin: 0 0 3px; font: 600 17px "Newsreader", serif; }
-.feature-card p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
-.feature-card button { min-width: 78px; }
+.perk-card.selected { border-color: var(--sage); background: #f5f8f2; }
+.perk-card-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.perk-card-heading h3 { margin: 2px 0 0; font: 600 21px "Newsreader", serif; }
+.perk-card-heading small { color: var(--sage); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; }
+.perk-options { display: grid; gap: 7px; }
+.perk-option {
+  display: grid; grid-template-columns: auto 1fr; gap: 9px; align-items: start;
+  padding: 10px 11px; border: 1px solid var(--line); border-radius: 7px; background: rgba(255,255,255,.6); cursor: pointer;
+}
+.perk-option.selected, .custom-perk.selected .perk-option { border-color: var(--rust); background: #fffaf4; }
+.perk-option input { width: auto; margin-top: 2px; }
+.perk-option strong { display: block; font: 600 15px "Newsreader", serif; }
+.perk-option em { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; font-style: normal; line-height: 1.45; }
+.custom-perk { margin-top: 10px; }
+.custom-perk-fields { display: grid; gap: 8px; margin-top: 8px; }
+.custom-perk-fields textarea { min-height: 78px; }
 .step-controls {
   max-width: 790px; width: 100%; margin: 42px auto 0; padding-top: 20px; border-top: 1px solid var(--line);
   display: flex; align-items: center; justify-content: space-between;
