@@ -94,6 +94,9 @@ input:focus, textarea:focus { border-color: var(--rust); box-shadow: 0 0 0 3px r
 .segmented-choice button:last-child { margin-left: -1px; border-radius: 0 7px 7px 0; }
 .segmented-choice button.selected { position: relative; color: #fff; background: var(--rust); border-color: var(--rust); }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.identity-details-grid { display: grid; grid-template-columns: 1.1fr .7fr .9fr .9fr; gap: 12px; }
+.segmented-choice.compact button { padding: 13px 9px; font-size: 12px; }
+.concept-field { min-height: 142px; }
 .choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 13px; }
 .choice-card {
   border: 1px solid var(--line); background: rgba(255,255,255,.5); border-radius: 9px;
@@ -371,7 +374,7 @@ input:focus, textarea:focus { border-color: var(--rust); box-shadow: 0 0 0 3px r
   .step-link { min-width: auto; grid-template-columns: auto; }
   .step-link strong { display: none; }
   .builder { padding: 35px 20px 22px; min-height: calc(100vh - 145px); }
-  .choice-grid, .field-row, .review-columns { grid-template-columns: 1fr; }
+  .choice-grid, .field-row, .identity-details-grid, .review-columns { grid-template-columns: 1fr; }
   .skill-grid { grid-template-columns: 1fr; }
   .skill-stage-tabs { grid-template-columns: repeat(2, 1fr); }
   .preset-path { grid-template-columns: 1fr; gap: 6px; }

@@ -126,10 +126,15 @@ const STEPS = [
 const STORAGE_KEY = "ember-and-ink-character";
 
 const freshCharacter = () => ({
+  playerName: "",
   name: "",
   gender: "",
+  age: "",
+  weight: "",
+  height: "",
   concept: "",
   appearance: "",
+  manners: "",
   ancestry: "",
   professionalSkills: [],
   professionalSpecializations: {},
@@ -366,16 +371,29 @@ function heading(kicker, title, copy) {
 function renderIdentity() {
   return heading("Who are they?", "Start with a person, not a stat block.", "Give the table enough texture to picture your character before the numbers settle into place.") + `
     <div class="field-row">
+      <div class="field"><label>Player name</label><input data-field="playerName" value="${escapeHtml(character.playerName)}" placeholder="Player at the table"></div>
       <div class="field"><label>Character name</label><input data-field="name" value="${escapeHtml(character.name)}" placeholder="Maera of the Low Road"></div>
-      <div class="field"><label>Concept</label><input data-field="concept" value="${escapeHtml(character.concept)}" placeholder="Disgraced cartographer, oathbound duelist..."></div>
     </div>
-    <div class="field"><label>Gender</label>
-      <div class="segmented-choice">
-        ${["Male", "Female"].map(option => `<button type="button" class="${character.gender === option ? "selected" : ""}" data-gender-choice="${option}">${option}</button>`).join("")}
+    <div class="identity-details-grid">
+      <div class="field"><label>Gender</label>
+        <div class="segmented-choice compact">
+          ${["Male", "Female"].map(option => `<button type="button" class="${character.gender === option ? "selected" : ""}" data-gender-choice="${option}">${option}</button>`).join("")}
+        </div>
       </div>
+      <div class="field"><label>Age</label><input data-field="age" value="${escapeHtml(character.age)}" placeholder="28"></div>
+      <div class="field"><label>Weight</label><input data-field="weight" value="${escapeHtml(character.weight)}" placeholder="75 kg"></div>
+      <div class="field"><label>Height</label><input data-field="height" value="${escapeHtml(character.height)}" placeholder="178 cm"></div>
     </div>
-    <div class="field"><label>Appearance & manner</label>
-      <textarea data-field="appearance" placeholder="Clothes, scars, presence, voice...">${escapeHtml(character.appearance)}</textarea>
+    <div class="field"><label>Concept</label>
+      <textarea class="concept-field" data-field="concept" placeholder="Disgraced cartographer, oathbound duelist, runaway surgeon...">${escapeHtml(character.concept)}</textarea>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Appearance</label>
+        <textarea data-field="appearance" placeholder="Clothes, scars, build, colours...">${escapeHtml(character.appearance)}</textarea>
+      </div>
+      <div class="field"><label>Manners</label>
+        <textarea data-field="manners" placeholder="Voice, posture, habits, tells...">${escapeHtml(character.manners)}</textarea>
+      </div>
     </div>`;
 }
 
@@ -554,14 +572,22 @@ function renderPerkSlot(skill) {
 function renderReview() {
   const ancestry = findById(GAME.ancestries, character.ancestry);
   const perks = unlockedPerkSkills().map(skill => ({ skill, perk: resolvedPerkForSkill(skill) })).filter(item => item.perk);
+  const physicalDetails = [
+    character.age ? `Age ${escapeHtml(character.age)}` : "",
+    character.height ? `Height ${escapeHtml(character.height)}` : "",
+    character.weight ? `Weight ${escapeHtml(character.weight)}` : ""
+  ].filter(Boolean).join(" · ");
   return heading("The road awaits", "Review your character.", "Everything below will become your print-ready character sheet. Use your browser’s PDF option when exporting.") + `
     <div class="review-sheet">
       <h2>${escapeHtml(character.name) || "Unnamed Wanderer"}</h2>
       <p class="review-meta">${escapeHtml(character.gender)}${character.gender && character.concept ? " · " : ""}${escapeHtml(character.concept) || "No concept yet"}</p>
       <div class="review-columns">
         <div>
+          <section class="review-block"><h3>Player</h3><p>${escapeHtml(character.playerName) || "Not listed."}</p></section>
           <section class="review-block"><h3>Ancestry</h3><p><strong>${ancestry?.name || "Not chosen"}</strong><br>${ancestry?.description || ""}</p></section>
-          <section class="review-block"><h3>Appearance & manner</h3><p>${escapeHtml(character.appearance) || "Not yet described."}</p></section>
+          <section class="review-block"><h3>Details</h3><p>${physicalDetails || "Age, height, and weight not listed."}</p></section>
+          <section class="review-block"><h3>Appearance</h3><p>${escapeHtml(character.appearance) || "Not yet described."}</p></section>
+          <section class="review-block"><h3>Manners</h3><p>${escapeHtml(character.manners) || "Not yet described."}</p></section>
           <section class="review-block"><h3>Professional skills</h3>${chosenProfessionalSkills().length ? `<ul>${chosenProfessionalSkills().map(skill => `<li>${skill.name}</li>`).join("")}</ul>` : "<p>None chosen.</p>"}</section>
         </div>
         <div>
@@ -744,6 +770,8 @@ function renderPreview() {
     <div class="preview-name">${escapeHtml(character.name) || "Unnamed Wanderer"}</div>
     <div class="preview-subtitle">${escapeHtml(character.concept) || "Your story begins here"}</div>
     <div class="preview-divider"></div>
+    <section class="preview-section"><h4>Player</h4><p class="${character.playerName ? "" : "empty-note"}">${escapeHtml(character.playerName) || "Not yet listed"}</p></section>
+    <section class="preview-section"><h4>Details</h4><p>${[character.gender, character.age, character.height, character.weight].filter(Boolean).map(escapeHtml).join(" · ") || `<span class="empty-note">No details yet</span>`}</p></section>
     <section class="preview-section"><h4>Ancestry</h4><p class="${ancestry ? "" : "empty-note"}">${ancestry?.name || "Not yet chosen"}</p></section>
     <section class="preview-section"><h4>Professional skills · ${character.professionalSkills.length}/${GAME.professionalSkillChoices}</h4>${chosenProfessionalSkills().length ? `<ul>${chosenProfessionalSkills().map(skill => `<li>${skill.name}</li>`).join("")}</ul>` : `<p class="empty-note">No professional skills chosen</p>`}</section>
     <section class="preview-section"><h4>Best skills</h4>${bestSkills.length ? `<ul>${bestSkills.map((skill, index) => `<li>${skill.name} ${SKILL_ARRAY[index] ?? 20}</li>`).join("")}</ul>` : `<p class="empty-note">No priority assigned</p>`}</section>
