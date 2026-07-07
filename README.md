@@ -18,14 +18,11 @@ Then visit `http://localhost:8000`.
 
 Edit the `GAME` object at the top of `app.js` to replace:
 
-- born/origin lifepaths and explicit branching career prerequisites
-- an in-app route guide with Born-path openings and career requirements
-- four total lifepaths per character
-- sequential 300-point skill stages with preset costs and a 40-point per-skill stage cap
-- separate combat-skill reference; Combat Magic remains a hidden professional unlock
 - ancestry choices with availability flags for future playtest options
-- 25 standard and 25 professional skills
-- 300 skill points per lifepath with tiered advancement costs
+- combat, standard, and professional skill lists
+- the number of professional skills each character chooses
+- the priority-array values used to assign final skill ratings
+- hidden future professional skills such as Combat Magic
 - features and feature costs
 
 Character drafts are saved in the browser with `localStorage`. The **Export PDF**
