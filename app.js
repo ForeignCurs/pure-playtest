@@ -47,7 +47,8 @@ const GAME = {
     { id: "dodge", name: "Dodge" }
   ],
   magicSkills: [
-    { id: "magic-combat", name: "Magic Combat" }
+    { id: "wave-magic", name: "Wave Magic", common: true },
+    { id: "magic-combat", name: "Magic Combat", requiresMagicTradition: true }
   ],
   professionalSkills: [
     { id: "engineering", name: "Engineering" },
@@ -219,7 +220,8 @@ function activeMagicTradition() {
 }
 
 function activeMagicSkills() {
-  return activeMagicTradition() ? GAME.magicSkills : [];
+  const tradition = activeMagicTradition();
+  return GAME.magicSkills.filter(skill => skill.common || (skill.requiresMagicTradition && tradition));
 }
 
 function professionalBaseId(key) {
