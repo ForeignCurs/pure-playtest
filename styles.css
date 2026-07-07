@@ -98,6 +98,7 @@ input:focus, textarea:focus { border-color: var(--rust); box-shadow: 0 0 0 3px r
 .segmented-choice.compact button { padding: 13px 9px; font-size: 12px; }
 .concept-field { min-height: 142px; }
 .choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 13px; }
+.ancestry-choice-grid { grid-template-columns: 1fr; }
 .choice-card {
   border: 1px solid var(--line); background: rgba(255,255,255,.5); border-radius: 9px;
   padding: 18px; cursor: pointer; transition: .2s; text-align: left; position: relative;
@@ -123,7 +124,7 @@ input:focus, textarea:focus { border-color: var(--rust); box-shadow: 0 0 0 3px r
 .ancestry-card-button:disabled { cursor: not-allowed; }
 .birth-perk-panel { padding: 0 18px 18px; border-top: 1px solid var(--line); }
 .birth-perk-panel .path-heading { margin-top: 14px; }
-.birth-perk-list { display: grid; gap: 8px; }
+.birth-perk-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .birth-perk-card {
   display: grid; gap: 4px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 7px;
   background: rgba(255,255,255,.6); text-align: left; cursor: pointer;
@@ -392,6 +393,7 @@ input:focus, textarea:focus { border-color: var(--rust); box-shadow: 0 0 0 3px r
   .step-link strong { display: none; }
   .builder { padding: 35px 20px 22px; min-height: calc(100vh - 145px); }
   .choice-grid, .field-row, .identity-details-grid, .review-columns { grid-template-columns: 1fr; }
+  .birth-perk-list { grid-template-columns: 1fr; }
   .skill-grid { grid-template-columns: 1fr; }
   .skill-stage-tabs { grid-template-columns: repeat(2, 1fr); }
   .preset-path { grid-template-columns: 1fr; gap: 6px; }
