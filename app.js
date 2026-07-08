@@ -335,12 +335,7 @@ function normalizeSkillOrder(order = character.skillOrder, professionalIds = cha
       ...available.filter(id => !professionalSet.has(id))
     ];
   }
-  return [
-    ...cleaned.filter(id => professionalSet.has(id)),
-    ...missing.filter(id => professionalSet.has(id)),
-    ...cleaned.filter(id => !professionalSet.has(id)),
-    ...missing.filter(id => !professionalSet.has(id))
-  ];
+  return [...cleaned, ...missing];
 }
 
 function skillName(id) {
@@ -531,13 +526,14 @@ function renderRepeatableProfessionalChoice(skill) {
 }
 
 function renderSkills() {
-  if (character.professionalSkills.length !== GAME.professionalSkillChoices) {
-    return heading("Professional skills required", "Choose your seven professional skills first.", "Once those are set, you will rank the complete orderable skill list from strongest to weakest.");
-  }
   const order = normalizeSkillOrder();
   const topValue = SKILL_ARRAY[0];
   const bottomValue = SKILL_ARRAY[Math.min(order.length, SKILL_ARRAY.length) - 1] ?? 20;
-  return heading("Skill priority", "Put the full skill list in order.", `Rank all ${order.length} skills. The top skill is ${topValue}; the values step down through the array, and any extra skills beyond the array stay at 20.`) + `
+  const professionalCount = character.professionalSkills.length;
+  const professionalNote = professionalCount === GAME.professionalSkillChoices
+    ? "All professional skills are included."
+    : `${professionalCount} of ${GAME.professionalSkillChoices} professional skills chosen; add more from Specialisation when ready.`;
+  return heading("Skill priority", "Put the available skill list in order.", `Rank the ${order.length} currently available skills. ${professionalNote} The top skill is ${topValue}; the values step down through the array, and any extra skills beyond the array stay at 20.`) + `
     <div class="array-preview">
       ${SKILL_ARRAY.map((value, index) => `<span><i>${index + 1}</i>${value}</span>`).join("")}
     </div>
@@ -546,7 +542,7 @@ function renderSkills() {
       <strong>${topValue} to ${bottomValue}</strong>
     </div>
     <section class="priority-order-panel">
-      <div class="path-heading"><span>Drag to reorder, or use the arrows</span><small>${chosenProfessionalSkills().length} professional skills included</small></div>
+      <div class="path-heading"><span>Drag to reorder, or use the arrows</span><small>${chosenProfessionalSkills().length} / ${GAME.professionalSkillChoices} professional skills included</small></div>
       <div class="priority-skill-list">${order.map((skillId, index) => renderPrioritySkill(skillId, index, order.length)).join("")}</div>
     </section>`;
 }
