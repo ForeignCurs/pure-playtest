@@ -38,7 +38,7 @@ const GAME = {
     { id: "language-common", name: "Language (Common Tongue)", value: 60 }
   ],
   combatSkills: [
-    { id: "brawling", name: "Brawling" },
+    { id: "brawling", name: "Unarmed Combat" },
     { id: "melee-combat", name: "Melee Combat" },
     { id: "ranged-combat", name: "Ranged Combat" },
     { id: "physical-defense", name: "Physical Defense" },
